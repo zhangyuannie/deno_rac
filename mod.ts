@@ -1,3 +1,5 @@
+import type { MePerfs } from "./types.ts";
+
 export interface Logger {
   debug: (...data: unknown[]) => void;
   info: (...data: unknown[]) => void;
@@ -32,6 +34,11 @@ export interface RequestOptions {
   useOauth?: boolean;
   /** The query string, by default raw_json is set to 1 */
   params?: Record<string, string>;
+  /**
+   * If `true`, the body will be sent as json
+   * @default false
+   */
+  json?: boolean;
 }
 
 export class Client {
@@ -57,6 +64,26 @@ export class Client {
     return this.#log;
   }
 
+  /** Endpoint helper for /api/v1/me */
+  get me() {
+    return {
+      get: () => this.request("/api/v1/me").then((res) => res.json()),
+      karma: {
+        get: () => this.request("/api/v1/me/karma").then((res) => res.json()),
+      },
+      prefs: {
+        get: (): Promise<MePerfs> =>
+          this.request("/api/v1/me/prefs").then((res) => res.json()),
+        patch: (body: Partial<MePerfs>) =>
+          this.request("/api/v1/me/prefs", {
+            method: "PATCH",
+            body,
+            json: true,
+          }),
+      },
+    };
+  }
+
   /** Resolves to "Bearer `accessToken`" */
   bearerAuth(): Promise<string> {
     return this.#bearerAuth ?? this._updateAccessToken();
@@ -73,11 +100,16 @@ export class Client {
         "Authorization": useOauth ? await this.bearerAuth() : this.#basicAuth,
         ...options.headers,
       },
-      body: options.body ? new URLSearchParams(options.body) : undefined,
+      body: options.body
+        ? (options.json
+          ? JSON.stringify(options.body)
+          : new URLSearchParams(options.body))
+        : undefined,
     };
     return fetch(url, init)
       .then((res) => {
         if (res.status === 401) {
+          // TODO: add max retry and check if the token is really expired
           this.log.info("the access token is invalid, resetting");
           this.#bearerAuth = undefined;
           return this.request(uri, options);
