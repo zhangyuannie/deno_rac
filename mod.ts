@@ -1,4 +1,5 @@
-import type { MePerfs } from "./types.ts";
+import type { MePerfs, RequestOptions } from "./types.ts";
+import { Resource } from "./resource.ts";
 
 export interface Logger {
   debug: (...data: unknown[]) => void;
@@ -24,21 +25,6 @@ export interface ClientOptions {
   authUrl?: string;
   /** @default console */
   log?: Logger;
-}
-
-export interface RequestOptions {
-  body?: Record<string, string>;
-  headers?: Record<string, string>;
-  method?: RequestInit["method"];
-  /** @default true */
-  useOauth?: boolean;
-  /** The query string, by default raw_json is set to 1 */
-  params?: Record<string, string>;
-  /**
-   * If `true`, the body will be sent as json
-   * @default false
-   */
-  json?: boolean;
 }
 
 export class Client {
@@ -82,6 +68,11 @@ export class Client {
           }),
       },
     };
+  }
+
+  /** Endpoint helper for /r */
+  r(subreddit: string) {
+    return new Resource(this, `/r/${subreddit}`);
   }
 
   /** Resolves to "Bearer `accessToken`" */
