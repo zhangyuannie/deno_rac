@@ -1,5 +1,5 @@
 import type { MePerfs, RequestOptions } from "./types.ts";
-import { Resource } from "./resource.ts";
+import { Subreddit } from "./subreddit.ts";
 
 export interface Logger {
   debug: (...data: unknown[]) => void;
@@ -72,7 +72,7 @@ export class Client {
 
   /** Endpoint helper for /r */
   r(subreddit: string) {
-    return new Resource(this, `/r/${subreddit}`);
+    return new Subreddit(this, `/r/${subreddit}`);
   }
 
   /** Resolves to "Bearer `accessToken`" */
