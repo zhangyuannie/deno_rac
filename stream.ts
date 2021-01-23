@@ -1,5 +1,5 @@
 import type { RedditListing, RequestOptions } from "./types.ts";
-import { backoff } from "./util.ts";
+import { backoff as defaultBackoff, CacheSet } from "./util.ts";
 
 type ListingGetter<T> = (params: RequestOptions) => Promise<RedditListing<T>>;
 interface CreateStreamOptions {
@@ -9,16 +9,14 @@ interface CreateStreamOptions {
 
 export async function* createStream<T extends { name: string }>(
   request: ListingGetter<T>,
-  options: CreateStreamOptions = { backoff },
+  { backoff = defaultBackoff, limit = 64 }: CreateStreamOptions = {},
 ) {
+  const seen = new CacheSet(limit * 2);
   let before: string | undefined;
-  const limit = `${options.limit ?? 64}`;
   let attempts = 0;
-  const seen = new Set();
   while (true) {
-    const things = await request({ params: { limit, before } })
-      .then((l) => l.data.children);
-    console.log(things.length);
+    const things = await request({ params: { limit: `${limit}`, before } })
+      .then((listing) => listing.data.children);
     before = undefined;
     for (let i = things.length; i--;) {
       const thing = things[i];
