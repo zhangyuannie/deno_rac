@@ -14,6 +14,11 @@ export async function* createStream<T extends { name: string }>(
   const seen = new CacheSet(limit * 2);
   let before: string | undefined;
   let attempts = 0;
+  // populate seen
+  await request({ params: { limit: `${limit}`, before } })
+    .then((listing) => listing.data.children)
+    .then((things) => things.forEach((thing) => seen.add(thing.data.name)));
+
   while (true) {
     const things = await request({ params: { limit: `${limit}`, before } })
       .then((listing) => listing.data.children);
